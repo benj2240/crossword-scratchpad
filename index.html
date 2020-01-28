@@ -1,0 +1,150 @@
+<!DOCTYPE html lang="en-US">
+<html>
+<head>
+<meta charset="utf-8">
+<title>Crossword Scratchpad</title>
+<style>
+#palette {
+  --grid-size: 4;
+  --cell-size: 1.5em;
+  display: grid;
+  grid-template-rows: repeat(var(--grid-size), var(--cell-size));
+  grid-template-columns: repeat(var(--grid-size), var(--cell-size));
+  width: calc(var(--grid-size) * var(--cell-size));
+  height: calc(var(--grid-size) * var(--cell-size));
+  border: thin solid black;
+}
+
+.cell {
+  border: thin solid black;
+  text-align: center;
+}
+
+.cell:disabled {
+  color: black;
+  background-color: black;
+}
+
+footer {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+}
+</style>
+</head>
+<body>
+<div id="palette"></div>
+<button id="toggle-direction"></button>
+<script>
+let STATE = {
+	mode: "type",
+  size: 0,
+  grid: [],
+  direction: "across",
+  save: `........#R##.#.
+#.#.#.#..A.....
+MOUSER#.#S##.#.
+#.#.#....H.....
+#.#.#.#.####.#.
+KILN#..........
+#.#.#.#.#.#.##.
+.......#.......
+.##.#.#.#.#.#.#
+..T.......#....
+.#O####.#.#.#.#
+..D.......#.#.#
+.#A##.#.#INSTEP
+..T.....#.#.#.#
+.#E##.#........`,
+}
+
+const createCell = (char, i, j) => {
+	const cell = document.createElement("input");
+
+  if (char == "#") {
+    cell.disabled = true;
+  }
+
+  cell.classList.add("cell");
+  cell.type = "text";
+  cell.value = char === "." ? "" : char;
+  cell.size = 1;
+
+  cell.addEventListener("click", () => {
+    if (STATE.mode !== "paint") return;
+    cell.classList.toggle("filled");
+  });
+
+  cell.addEventListener("input", () => {
+    if (STATE.mode !== "type") return;
+
+    cell.value = cell.value.toUpperCase();
+    let nextCell;
+
+    if (STATE.direction === "across") {
+      let x = j;
+      do {
+        x += 1;
+        nextCell = STATE.grid[i][x];
+      } while (nextCell && nextCell.disabled)
+    } else {
+      let x = i;
+      do {
+        x += 1;
+        nextCell = STATE.grid[x][j];
+      } while (nextCell && nextCell.disabled)
+    }
+
+    if (nextCell) {
+      nextCell.focus();
+
+      if (nextCell.value) {
+        nextCell.setSelectionRange(0, nextCell.value.length);
+      }
+    } else {
+      cell.blur();
+    }
+  });
+
+  return cell;
+}
+
+const createGrid = save => save
+  .split("\n")
+  .map((line, i) => line
+    .split("")
+    .map((char, j) => createCell(char, i , j)));
+
+STATE.grid = createGrid(STATE.save);
+
+const PALETTE = document.getElementById("palette");
+PALETTE.style.setProperty("--grid-size", STATE.grid.length);
+
+STATE.grid.forEach(row =>
+  row.forEach(cell =>
+    PALETTE.appendChild(cell)));
+
+const PIVOT = document.getElementById("toggle-direction");
+
+if (STATE.direction === "across") {
+  PIVOT.textContent = "→";
+} else {
+  PIVOT.textContent = "↓";
+}
+
+PIVOT.addEventListener("click", () => {
+  if (STATE.direction === "across") {
+    STATE.direction = "down";
+    PIVOT.textContent = "↓";
+  } else {
+    STATE.direction = "across";
+    PIVOT.textContent = "→";
+  }
+});
+
+</script>
+<footer class="fixed-bottom">
+  How does it work? Check out the <a href="https://github.com/benj2240/crossword-scratchpad">github repository.</a>
+</footer>
+</body>
+</html>
