@@ -89,10 +89,12 @@ const createCell = (char, i, j) => {
       } while (nextCell && nextCell.disabled)
     } else {
       let x = i;
+      let nextRow;
       do {
         x += 1;
-        nextCell = STATE.grid[x][j];
-      } while (nextCell && nextCell.disabled)
+        nextRow = STATE.grid[x];
+      } while (nextRow && nextRow[j].disabled)
+      nextCell = nextRow[j];
     }
 
     if (nextCell) {
