@@ -40,7 +40,7 @@ let STATE = {
 	mode: "type",
   size: 0,
   grid: [],
-  direction: "across",
+  direction: "→",
   save: `........#R##.#.
 #.#.#.#..A.....
 MOUSER#.#S##.#.
@@ -61,7 +61,7 @@ KILN#..........
 const createCell = (char, i, j) => {
 	const cell = document.createElement("input");
 
-  if (char == "#") {
+  if (char === "#") {
     cell.disabled = true;
   }
 
@@ -81,7 +81,7 @@ const createCell = (char, i, j) => {
     cell.value = cell.value.toUpperCase();
     let nextCell;
 
-    if (STATE.direction === "across") {
+    if (STATE.direction === "→") {
       let x = j;
       do {
         x += 1;
@@ -125,19 +125,13 @@ STATE.grid.forEach(row =>
     PALETTE.appendChild(cell)));
 
 const PIVOT = document.getElementById("toggle-direction");
-
-if (STATE.direction === "across") {
-  PIVOT.textContent = "→";
-} else {
-  PIVOT.textContent = "↓";
-}
-
+PIVOT.textContent = STATE.direction;
 PIVOT.addEventListener("click", () => {
-  if (STATE.direction === "across") {
-    STATE.direction = "down";
+  if (STATE.direction === "→") {
+    STATE.direction = "↓";
     PIVOT.textContent = "↓";
   } else {
-    STATE.direction = "across";
+    STATE.direction = "→";
     PIVOT.textContent = "→";
   }
 });
