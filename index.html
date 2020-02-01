@@ -36,27 +36,38 @@ footer {
 <div id="palette"></div>
 <button id="toggle-direction"></button>
 <script>
-let STATE = {
-	mode: "type",
+var saveFromUrl = new URLSearchParams(window.location.search).get('save');
+
+let save;
+
+if (saveFromUrl) {
+  save = decodeURIComponent(saveFromUrl)
+} else {save = `....#..........
+#.#.#.#.#.##.#.
+..........#....
+#.#.#.#.#.##.#.
+......#........
+#.#.#.#.#.###.#
+....#..........
+#.#.###.###.#.#
+..........#....
+#.###.#.#.#.#.#
+........#......
+.#.##.#.#.#.#.#
+....#..........
+.#.##.#.#.#.#.#
+..........#....`
+}
+
+const createState = save => ({
+  mode: "type",
   size: 0,
   grid: [],
   direction: "→",
-  save: `........#R##.#.
-#.#.#.#..A.....
-MOUSER#.#S##.#.
-#.#.#....H.....
-#.#.#.#.####.#.
-KILN#..........
-#.#.#.#.#.#.##.
-.......#.......
-.##.#.#.#.#.#.#
-..T.......#....
-.#O####.#.#.#.#
-..D.......#.#.#
-.#A##.#.#INSTEP
-..T.....#.#.#.#
-.#E##.#........`,
-}
+  save,
+})
+
+STATE = createState(save);
 
 const createCell = (char, i, j) => {
 	const cell = document.createElement("input");
@@ -79,6 +90,7 @@ const createCell = (char, i, j) => {
     if (STATE.mode !== "type") return;
 
     cell.value = cell.value.toUpperCase();
+    saveToUrl();
     let nextCell;
 
     if (STATE.direction === "→") {
@@ -118,9 +130,10 @@ const createGrid = save => save
     .map((char, j) => createCell(char, i , j)));
 
 STATE.grid = createGrid(STATE.save);
+STATE.size = STATE.grid.length;
 
 const PALETTE = document.getElementById("palette");
-PALETTE.style.setProperty("--grid-size", STATE.grid.length);
+PALETTE.style.setProperty("--grid-size", STATE.size);
 
 STATE.grid.forEach(row =>
   row.forEach(cell =>
@@ -137,6 +150,18 @@ PIVOT.addEventListener("click", () => {
     PIVOT.textContent = "→";
   }
 });
+
+const saveToUrl = () => {
+  const cellValues = [];
+  let cells = [...PALETTE.querySelectorAll("input")];
+  while (cells.length) {
+    let row = cells.slice(0, STATE.size);
+    cells = cells.slice(STATE.size);
+    cellValues.push(row.map(inp => inp.value || '.').join(''));
+  }
+  STATE.save = cellValues.join('\n');
+  window.history.replaceState(null, '', `?save=${encodeURIComponent(STATE.save)}`);
+}
 
 </script>
 <footer>
