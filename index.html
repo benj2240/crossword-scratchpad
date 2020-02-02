@@ -5,7 +5,6 @@
 <title>Crossword Scratchpad</title>
 <style>
 #palette {
-  --grid-size: 4;
   --cell-size: 1.5em;
   display: grid;
   grid-template-rows: repeat(var(--grid-size), var(--cell-size));
@@ -18,11 +17,31 @@
 .cell {
   border: thin solid black;
   text-align: center;
+  position: relative;
 }
 
-.cell:disabled {
+.cell input {
+  width: 100%;
+  height: 100%;
+  text-align: center;
+}
+
+.cell.solid {
   color: black;
   background-color: black;
+}
+
+.cell.solid input {
+  display: none;
+}
+
+.cell::after {
+  content: attr(data-clue-number);
+  position: absolute;
+  font-size: 0.5em;
+  top: 0;
+  left: 0;
+  padding: 0.1em;
 }
 
 footer {
@@ -70,26 +89,27 @@ const createState = save => ({
 STATE = createState(save);
 
 const createCell = (char, i, j) => {
-	const cell = document.createElement("input");
+  const cell = document.createElement("div");
+  cell.classList.add("cell");
+
+	const input = document.createElement("input");
+  input.type = "text";
+  input.value = char === "." ? "" : char;
 
   if (char === "#") {
-    cell.disabled = true;
+    input.disabled = true;
+    cell.classList.add("solid");
   }
 
-  cell.classList.add("cell");
-  cell.type = "text";
-  cell.value = char === "." ? "" : char;
-  cell.size = 1;
-
-  cell.addEventListener("click", () => {
+  input.addEventListener("click", () => {
     if (STATE.mode !== "paint") return;
-    cell.classList.toggle("filled");
+    input.classList.toggle("filled");
   });
 
-  cell.addEventListener("input", () => {
+  input.addEventListener("input", () => {
     if (STATE.mode !== "type") return;
 
-    cell.value = cell.value.toUpperCase();
+    input.value = input.value.toUpperCase();
     saveToUrl();
     let nextCell;
 
@@ -97,7 +117,7 @@ const createCell = (char, i, j) => {
       let x = j;
       do {
         x += 1;
-        nextCell = STATE.grid[i][x];
+        nextCell = STATE.grid[i][x].children[0];
       } while (nextCell && nextCell.disabled)
     } else {
       let x = i;
@@ -105,8 +125,8 @@ const createCell = (char, i, j) => {
       do {
         x += 1;
         nextRow = STATE.grid[x];
-      } while (nextRow && nextRow[j].disabled)
-      nextCell = nextRow && nextRow[j];
+      } while (nextRow && nextRow[j].children[0].disabled)
+      nextCell = nextRow && nextRow[j].children[0];
     }
 
     if (nextCell) {
@@ -116,10 +136,11 @@ const createCell = (char, i, j) => {
         nextCell.setSelectionRange(0, nextCell.value.length);
       }
     } else {
-      cell.blur();
+      input.blur();
     }
   });
 
+  cell.appendChild(input);
   return cell;
 }
 
@@ -131,6 +152,28 @@ const createGrid = save => save
 
 STATE.grid = createGrid(STATE.save);
 STATE.size = STATE.grid.length;
+
+const addNumbers = grid => {
+  let clueNumber = 0;
+  for (let i = 0; i < grid.length; i += 1) {
+    for (let j = 0; j < grid[0].length; j += 1) {
+      if (grid[i][j].children[0].value === '#') continue;
+
+      let boundedLeft = (j === 0 || grid[i][j-1].children[0].value === '#');
+      let boundedRight = (j === grid[0].length - 1 || grid[i][j+1].children[0].value === '#');
+      let boundedTop = (i === 0 || grid[i-1][j].children[0].value === '#');
+      let boundedBottom = (i === grid.length - 1 || grid[i+1][j].children[0].value === '#');
+      let startOfClue = (boundedLeft && !boundedRight || boundedTop && !boundedBottom);
+
+      if (!startOfClue) continue;
+
+      clueNumber += 1;
+      grid[i][j].dataset.clueNumber = clueNumber;
+    }
+  }
+};
+
+addNumbers(STATE.grid);
 
 const PALETTE = document.getElementById("palette");
 PALETTE.style.setProperty("--grid-size", STATE.size);
@@ -157,7 +200,7 @@ const saveToUrl = () => {
   while (cells.length) {
     let row = cells.slice(0, STATE.size);
     cells = cells.slice(STATE.size);
-    cellValues.push(row.map(inp => inp.value || '.').join(''));
+    cellValues.push(row.map(inp => inp.value[0] || '.').join(''));
   }
   STATE.save = cellValues.join('\n');
   window.history.replaceState(null, '', `?save=${encodeURIComponent(STATE.save)}`);
